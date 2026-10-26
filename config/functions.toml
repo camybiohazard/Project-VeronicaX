@@ -1,0 +1,23 @@
+# Manual function boundary overrides for Default.xex.
+#
+# Add an entry whenever codegen reports "target not in any function".
+# Record how each address was found in notes/functions.md.
+
+# Gaps the analyzer treated as padding; each is a branch target and is
+# bounded by the next function it did find.
+
+[functions."0x823D01B8"]
+end = 0x823D01E0    # b from 0x82540930, 0x82540940
+
+[functions."0x827E8580"]
+end = 0x827E8588    # li r3,0; blr -- shared "return 0" tail, ~206 b callers
+name = "ReturnZero"
+
+[functions."0x8281BAF8"]
+end = 0x8281BB00    # b from 0x8287C0A4
+
+# Reached only through function pointers / vtables (found at runtime:
+# "Call to invalid or unregistered function").
+
+[functions."0x827F3088"]
+end = 0x827F30C8    # gap after sub_827F3070; first hit during boot

@@ -1,0 +1,392 @@
+# Pointer-only functions (vtable / function-pointer targets) found by
+# scripts/refine_gaps.py. Do not edit by hand; see notes/functions.md.
+
+[functions."0x821A4F50"]
+end = 0x821A50F4
+
+[functions."0x821D9D10"]
+end = 0x821D9D88
+
+[functions."0x821ECDA0"]
+end = 0x821ECDBC
+
+[functions."0x82221808"]
+end = 0x82221818
+
+[functions."0x82221818"]
+end = 0x82221828
+
+[functions."0x8222C8B0"]
+end = 0x8222C904
+
+[functions."0x82235538"]
+end = 0x8223553C
+
+[functions."0x822414B0"]
+end = 0x822414C0
+
+[functions."0x822414C0"]
+end = 0x822414C4
+
+[functions."0x82255CE0"]
+end = 0x82255CE4
+
+[functions."0x82255E30"]
+end = 0x82255E34
+
+[functions."0x8232BCB0"]
+end = 0x8232BCC0
+
+[functions."0x82347370"]
+end = 0x82347374
+
+[functions."0x8234D368"]
+end = 0x8234D36C
+
+[functions."0x8234D5B0"]
+end = 0x8234D5B4
+
+[functions."0x8234D7F8"]
+end = 0x8234D7FC
+
+[functions."0x823AAFB0"]
+end = 0x823AAFB4
+
+[functions."0x823B96C0"]
+end = 0x823B96CC
+
+[functions."0x82416400"]
+end = 0x82416404
+
+[functions."0x82429F58"]
+end = 0x82429F68
+
+[functions."0x82441630"]
+end = 0x82441638
+
+[functions."0x82441AD0"]
+end = 0x82441AE0
+
+[functions."0x82442320"]
+end = 0x82442330
+
+[functions."0x824885C0"]
+end = 0x824885D0
+
+[functions."0x824886D0"]
+end = 0x824886E0
+
+[functions."0x824A30B0"]
+end = 0x824A30C0
+
+[functions."0x824A30C0"]
+end = 0x824A30C4
+
+[functions."0x824BBFE8"]
+end = 0x824BBFF4
+
+[functions."0x824D0568"]
+end = 0x824D0580
+
+[functions."0x824D3198"]
+end = 0x824D31BC
+
+[functions."0x8251E628"]
+end = 0x8251E638
+
+[functions."0x82523AB0"]
+end = 0x82523AC8
+
+[functions."0x8253F6B8"]
+end = 0x8253F6C0
+
+[functions."0x8253F6C0"]
+end = 0x8253F6DC
+
+[functions."0x8254FDA8"]
+end = 0x8254FDB0
+
+[functions."0x8254FDB0"]
+end = 0x8254FDB8
+
+[functions."0x8254FDB8"]
+end = 0x8254FDC0
+
+[functions."0x8254FDC0"]
+end = 0x8254FDC8
+
+[functions."0x8254FDC8"]
+end = 0x8254FDD4
+
+[functions."0x825FFBB8"]
+end = 0x825FFBBC
+
+[functions."0x8262C088"]
+end = 0x8262C090
+
+[functions."0x826314A0"]
+end = 0x826314AC
+
+[functions."0x8263DE00"]
+end = 0x8263DE10
+
+[functions."0x8263DE10"]
+end = 0x8263DE20
+
+[functions."0x8263DE20"]
+end = 0x8263DE30
+
+[functions."0x8263E000"]
+end = 0x8263E00C
+
+[functions."0x82646DF8"]
+end = 0x82646E08
+
+[functions."0x82646E08"]
+end = 0x82646E18
+
+[functions."0x82646E18"]
+end = 0x82646E28
+
+[functions."0x82654730"]
+end = 0x82654740
+
+[functions."0x826547A0"]
+end = 0x826547A8
+
+[functions."0x826547A8"]
+end = 0x826547B8
+
+[functions."0x8265B5C0"]
+end = 0x8265B5CC
+
+[functions."0x82665A68"]
+end = 0x82665A94
+
+[functions."0x82674CE8"]
+end = 0x82674CF8
+
+[functions."0x82674CF8"]
+end = 0x82674D08
+
+[functions."0x827290B8"]
+end = 0x827290BC
+
+[functions."0x82736030"]
+end = 0x82736040
+
+[functions."0x82755640"]
+end = 0x82755654
+
+[functions."0x827556B0"]
+end = 0x827556C0
+
+[functions."0x827556C0"]
+end = 0x827556C8
+
+[functions."0x8279F238"]
+end = 0x8279F244
+
+[functions."0x827A1AA0"]
+end = 0x827A1B08
+
+[functions."0x827E5DF8"]
+end = 0x827E5E08
+
+[functions."0x827F8DB8"]
+end = 0x827F8DBC
+
+[functions."0x827F8EF8"]
+end = 0x827F8F10
+
+[functions."0x82834C38"]
+end = 0x82834C48
+
+[functions."0x8283B9D8"]
+end = 0x8283B9E8
+
+[functions."0x8283B9E8"]
+end = 0x8283BA38
+
+[functions."0x8288E688"]
+end = 0x8288E698
+
+[functions."0x828A04D8"]
+end = 0x828A04E4
+
+[functions."0x828A7D18"]
+end = 0x828A7D20
+
+[functions."0x828A7D38"]
+end = 0x828A7D40
+
+[functions."0x828A7D58"]
+end = 0x828A7D60
+
+[functions."0x828A7EF8"]
+end = 0x828A7F18
+
+[functions."0x828A7F18"]
+end = 0x828A7F38
+
+[functions."0x828A7F38"]
+end = 0x828A7F58
+
+[functions."0x828A7F58"]
+end = 0x828A7F78
+
+[functions."0x828A7F78"]
+end = 0x828A7F98
+
+[functions."0x828A7F98"]
+end = 0x828A7FB8
+
+[functions."0x828A7FB8"]
+end = 0x828A7FD8
+
+[functions."0x828A7FD8"]
+end = 0x828A7FF8
+
+[functions."0x828A7FF8"]
+end = 0x828A8018
+
+[functions."0x828A8018"]
+end = 0x828A8038
+
+[functions."0x828A9898"]
+end = 0x828A98A8
+
+[functions."0x828AF060"]
+end = 0x828AF068
+
+[functions."0x829E1960"]
+end = 0x829E1970
+
+[functions."0x829E1CE8"]
+end = 0x829E1D10
+
+[functions."0x829E1D10"]
+end = 0x829E1D38
+
+[functions."0x829E1D38"]
+end = 0x829E1D60
+
+[functions."0x829E1D60"]
+end = 0x829E1D88
+
+[functions."0x829E2178"]
+end = 0x829E2198
+
+[functions."0x829E2198"]
+end = 0x829E219C
+
+[functions."0x829E21B0"]
+end = 0x829E21C0
+
+[functions."0x829E21C0"]
+end = 0x829E21D0
+
+[functions."0x829E21D0"]
+end = 0x829E21E0
+
+[functions."0x829E21E0"]
+end = 0x829E21F0
+
+[functions."0x829E21F0"]
+end = 0x829E2200
+
+[functions."0x829E2200"]
+end = 0x829E2210
+
+[functions."0x829E2210"]
+end = 0x829E2220
+
+[functions."0x829E2220"]
+end = 0x829E2230
+
+[functions."0x829E2230"]
+end = 0x829E2240
+
+[functions."0x82A73190"]
+end = 0x82A73194
+
+[functions."0x82AA8C08"]
+end = 0x82AA8C7C
+
+[functions."0x82B29B90"]
+end = 0x82B29BE0
+
+[functions."0x82B63B78"]
+end = 0x82B63BA4
+
+[functions."0x82B77018"]
+end = 0x82B77020
+
+[functions."0x82B79B60"]
+end = 0x82B79B68
+
+[functions."0x82B7A050"]
+end = 0x82B7A058
+
+[functions."0x82B7C8D8"]
+end = 0x82B7C904
+
+[functions."0x82B7F500"]
+end = 0x82B7F508
+
+[functions."0x82B7F508"]
+end = 0x82B7F510
+
+[functions."0x82B7F510"]
+end = 0x82B7F518
+
+[functions."0x82B7F518"]
+end = 0x82B7F520
+
+[functions."0x82B7F520"]
+end = 0x82B7F528
+
+[functions."0x82B7F530"]
+end = 0x82B7F538
+
+[functions."0x82B7F538"]
+end = 0x82B7F540
+
+[functions."0x82B7F540"]
+end = 0x82B7F548
+
+[functions."0x82B85A88"]
+end = 0x82B85A90
+
+[functions."0x82B85A98"]
+end = 0x82B85AA0
+
+[functions."0x82B85AA0"]
+end = 0x82B85AA8
+
+[functions."0x82B85AA8"]
+end = 0x82B85AB0
+
+[functions."0x82B85AB0"]
+end = 0x82B85AB8
+
+[functions."0x82B85D50"]
+end = 0x82B85D58
+
+[functions."0x82B85D58"]
+end = 0x82B85D60
+
+[functions."0x82B85D60"]
+end = 0x82B85D68
+
+[functions."0x82B85D68"]
+end = 0x82B85D70
+
+[functions."0x82B98778"]
+end = 0x82B98790
+
+[functions."0x82B99508"]
+end = 0x82B99510
+
+[functions."0x82BAAC80"]
+end = 0x82BAAC88

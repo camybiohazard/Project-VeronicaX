@@ -1,0 +1,28 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "dev-debug",
+            "displayName": "VeronicaX Debug (local SDK)",
+            "inherits": "linux-amd64-debug",
+            "cacheVariables": { "CMAKE_PREFIX_PATH": "${sourceDir}/sdk" }
+        },
+        {
+            "name": "dev-relwithdebinfo",
+            "displayName": "VeronicaX RelWithDebInfo (local SDK)",
+            "inherits": "linux-amd64-relwithdebinfo",
+            "cacheVariables": { "CMAKE_PREFIX_PATH": "${sourceDir}/sdk" }
+        },
+        {
+            "name": "dev-release",
+            "displayName": "VeronicaX Release (local SDK)",
+            "inherits": "linux-amd64-release",
+            "cacheVariables": { "CMAKE_PREFIX_PATH": "${sourceDir}/sdk" }
+        }
+    ],
+    "buildPresets": [
+        { "name": "dev-debug", "configurePreset": "dev-debug" },
+        { "name": "dev-relwithdebinfo", "configurePreset": "dev-relwithdebinfo" },
+        { "name": "dev-release", "configurePreset": "dev-release" }
+    ]
+}
