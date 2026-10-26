@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <rex/cvar.h>
 #include <rex/rex_app.h>
 
 class VeronicaxApp : public rex::ReXApp {
@@ -30,10 +31,23 @@ class VeronicaxApp : public rex::ReXApp {
     }
   }
 
+  // GPU cvars are registered by the GPU plugin, so they only exist after
+  // setup; the render target cache reads this one per draw and resolve.
+  void OnPostSetup() override {
+    // Full-range SNORM16 render targets break the lighter's light and
+    // Applied only when no config file, environment variable or flag set it
+    // (checked by source, since "true" is also the compiled-in default).
+    if (rex::cvar::GetFlagSource("snorm16_render_target_full_range") ==
+        rex::cvar::Source::kDefault) {
+      rex::cvar::SetFlagByName("snorm16_render_target_full_range", "false");
+    }
+    REXLOG_INFO("snorm16_render_target_full_range = {}",
+                rex::cvar::GetFlagByName("snorm16_render_target_full_range"));
+  }
+
   // Override virtual hooks for customization:
   // void OnPostInitLogging() override {}
   // void OnPostLoadXexImage() override {}
-  // void OnPostSetup() override {}
   // void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {}
   // std::unique_ptr<rex::ui::ImGuiDialog> CreateAchievementsOverlay() override;
   // std::unique_ptr<rex::ui::AchievementNotificationDialog>
