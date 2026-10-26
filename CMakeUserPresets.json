@@ -5,24 +5,60 @@
             "name": "dev-debug",
             "displayName": "VeronicaX Debug (local SDK)",
             "inherits": "linux-amd64-debug",
-            "cacheVariables": { "CMAKE_PREFIX_PATH": "${sourceDir}/sdk" }
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/sdk"
+            }
         },
         {
             "name": "dev-relwithdebinfo",
             "displayName": "VeronicaX RelWithDebInfo (local SDK)",
             "inherits": "linux-amd64-relwithdebinfo",
-            "cacheVariables": { "CMAKE_PREFIX_PATH": "${sourceDir}/sdk" }
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/sdk"
+            }
         },
         {
             "name": "dev-release",
             "displayName": "VeronicaX Release (local SDK)",
             "inherits": "linux-amd64-release",
-            "cacheVariables": { "CMAKE_PREFIX_PATH": "${sourceDir}/sdk" }
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/sdk"
+            }
+        },
+        {
+            "name": "win-cross-release",
+            "displayName": "Windows x64 Release (cross-compiled from Linux)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build-win",
+            "toolchainFile": "${sourceDir}/cmake/toolchain-win-clang-cl.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_PREFIX_PATH": "${sourceDir}/sdk-win",
+                "CMAKE_PROJECT_INCLUDE": "${sourceDir}/cmake/win-cross-host-codegen.cmake"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
         }
     ],
     "buildPresets": [
-        { "name": "dev-debug", "configurePreset": "dev-debug" },
-        { "name": "dev-relwithdebinfo", "configurePreset": "dev-relwithdebinfo" },
-        { "name": "dev-release", "configurePreset": "dev-release" }
+        {
+            "name": "dev-debug",
+            "configurePreset": "dev-debug"
+        },
+        {
+            "name": "dev-relwithdebinfo",
+            "configurePreset": "dev-relwithdebinfo"
+        },
+        {
+            "name": "dev-release",
+            "configurePreset": "dev-release"
+        },
+        {
+            "name": "win-cross-release",
+            "configurePreset": "win-cross-release"
+        }
     ]
 }

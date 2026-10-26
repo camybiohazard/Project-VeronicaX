@@ -51,10 +51,37 @@ For crashes, freezes and hangs, use `scripts/debug-run.sh`. It runs the game
 under gdb and writes the faulting thread, guest registers, the guest object
 and its vtable, and every stack to `notes/logs/hang-backtrace.txt`.
 
+## Windows build (cross-compiled from Linux)
+
+```sh
+scripts/build-win.sh      # Release, D3D12, output in build-win/
+```
+
+It needs:
+
+- The Windows ReXGlue SDK of the same version as `sdk/`, unpacked so that
+  `sdk-win` points at its `win-amd64` folder.
+- Microsoft's CRT and Windows SDK, laid out by
+  [xwin](https://github.com/Jake-Shadle/xwin):
+  `xwin --accept-license --arch x86_64 splat --output ~/.local/share/xwin`.
+  Those files are Microsoft-licensed: they stay outside the repo and never go
+  into a release.
+
+The toolchain is `cmake/toolchain-win-clang-cl.cmake`. Codegen still runs
+the Linux `sdk/bin/rexglue`, via `cmake/win-cross-host-codegen.cmake`.
+
+To run it on Windows, copy `veronicax.exe`, the `.dll` files and
+`run-veronicax.bat` from `build-win/`, and put the extracted game files in a
+`game` folder next to them. The PC needs the Visual C++ 2015-2022 x64
+redistributable.
+
 ## Status
 
 - [x] ISO extracted (`Default.xex`, no extra DLL modules)
-- [x] Codegen passes validation (3 boundary overrides)
-- [ ] First build with Clang 20
-- [ ] Boots to the first kernel or GPU failure
-- [ ] Title screen
+- [x] Codegen passes validation
+- [x] Linux build (Vulkan) boots, plays FMVs, reaches the title screen
+- [x] New Game into gameplay; past the barracks window
+- [x] Lighter light and shadows in the jail cell
+- [x] Windows build (D3D12) cross-compiles and links
+- [ ] Windows build tested on a Windows PC
+- [ ] Full playthrough (see `notes/known-issues.md`)

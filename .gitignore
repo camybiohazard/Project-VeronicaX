@@ -17,6 +17,11 @@
 # Disc file listing written by scripts/extract.sh (describes the game disc)
 /notes/iso_listing.txt
 /rexglue-sdk-*.zip
+/sdk-win-download/
 
 # Python bytecode
 __pycache__/
+/sdk-win
+
+# Windows cross build output
+/build-win/
