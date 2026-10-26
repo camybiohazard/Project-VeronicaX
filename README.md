@@ -83,5 +83,5 @@ redistributable.
 - [x] New Game into gameplay; past the barracks window
 - [x] Lighter light and shadows in the jail cell
 - [x] Windows build (D3D12) cross-compiles and links
-- [ ] Windows build tested on a Windows PC
+- [x] Windows build runs and plays on Windows (GTX 1660, D3D12)
 - [ ] Full playthrough (see `notes/known-issues.md`)
