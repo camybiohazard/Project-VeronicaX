@@ -136,7 +136,7 @@ void LauncherDialog::OnDraw(ImGuiIO& io) {
   ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
                           ImGuiCond_Always, ImVec2(0.5f, 0.5f));
   ImGui::SetNextWindowSize(ImVec2(kBaseWidth * scale, 0.0f), ImGuiCond_Always);
-  ImGui::Begin("Resident Evil CODE: Veronica X", nullptr,
+  ImGui::Begin("Project Veronica X", nullptr,
                ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
   ImGui::SetWindowFontScale(scale);
