@@ -57,8 +57,8 @@ Without a verified `game/` folder next to the executable, the game window
 opens on a setup screen. It asks for the ISO, checks that its `Default.xex` is
 the version this build was recompiled from, and extracts the disc into `game/`
 (staging into `game.partial/`, then renaming). After that, every launch shows
-a settings screen (fullscreen or windowed, window size, internal resolution,
-VSync) with a Play button. Choices are saved to `veronicax.toml` next to the
+a settings screen (fullscreen or windowed, window size, internal resolution)
+with a Play button. VSync is always on: the game runs too fast without it. Choices are saved to `veronicax.toml` next to the
 executable; F4 in game has the full ReXGlue settings.
 
 - Source: `src/launcher/` (`xdvdfs.*` is the disc reader, a port of
@@ -81,6 +81,21 @@ or personal files, every library resolving from the package or the system,
 and nothing above the glibc floor. Finally it writes the `.tar.gz` and a
 `.sha256`.
 
+## Release package (Windows)
+
+```sh
+scripts/package-windows.sh [version] # dist/VeronicaX-<version>-windows-x86_64.zip
+```
+
+This cross-builds `win-cross-release` (see below) and stages `veronicax.exe`,
+`rexruntime.dll`, `rexgpu-xenos.dll`, a player README (CRLF), `LICENSE` and
+`third_party_licenses/`. The script then checks the package: no game data,
+personal files or Microsoft SDK/CRT files; every imported DLL either bundled,
+part of Windows, or part of the VC++ redistributable; all binaries x64.
+Finally it writes the `.zip` and a `.sha256`. On Windows the launcher uses the
+native file dialog, because the SDK links a separate static SDL into the
+executable there.
+
 ## Windows build (cross-compiled from Linux)
 
 ```sh
@@ -100,10 +115,9 @@ It needs:
 The toolchain is `cmake/toolchain-win-clang-cl.cmake`. Codegen still runs
 the Linux `sdk/bin/rexglue`, via `cmake/win-cross-host-codegen.cmake`.
 
-To run it on Windows, copy `veronicax.exe`, the `.dll` files and
-`run-veronicax.bat` from `build-win/`, and put the extracted game files in a
-`game` folder next to them. The PC needs the Visual C++ 2015-2022 x64
-redistributable.
+To try a build directly on Windows, copy `veronicax.exe` and the `.dll` files
+from `build-win/` and run it; the launcher sets up the game files. The PC
+needs the Visual C++ 2015-2022 x64 redistributable.
 
 ## Status
 

@@ -83,6 +83,12 @@ class VeronicaxApp : public rex::ReXApp {
     }
     REXLOG_INFO("snorm16_render_target_full_range = {}",
                 rex::cvar::GetFlagByName("snorm16_render_target_full_range"));
+    // The game's timing assumes the display's refresh, so without VSync it
+    // runs too fast. Forced on, even over a saved config from older builds.
+    if (!rex::cvar::Query<bool>("vsync")) {
+      REXLOG_WARN("vsync must stay on for correct game speed; enabling it");
+      rex::cvar::SetFlagByName("vsync", "true");
+    }
   }
 
   // Override virtual hooks for customization:

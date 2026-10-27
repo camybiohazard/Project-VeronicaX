@@ -2,6 +2,8 @@
 
 #include "launcher/xdvdfs.h"
 
+#include "launcher/game_files.h"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -38,7 +40,7 @@ std::optional<XdvdfsImage> XdvdfsImage::Open(const std::filesystem::path& iso,
   image.path_ = iso;
   image.file_.open(iso, std::ios::binary);
   if (!image.file_) {
-    error = "Could not open " + iso.string();
+    error = "Could not open " + PathToUtf8(iso);
     return std::nullopt;
   }
 
@@ -170,7 +172,7 @@ bool XdvdfsImage::ExtractAll(const std::filesystem::path& dest, const std::atomi
     std::filesystem::create_directories(out_path.parent_path(), ec);
     std::ofstream out(out_path, std::ios::binary | std::ios::trunc);
     if (!out) {
-      error = "Could not write " + out_path.string();
+      error = "Could not write " + PathToUtf8(out_path);
       return false;
     }
     uint64_t offset = partition_offset_ + uint64_t(entry.sector) * kSectorSize;
@@ -187,7 +189,7 @@ bool XdvdfsImage::ExtractAll(const std::filesystem::path& dest, const std::atomi
       }
       out.write(buffer.data(), std::streamsize(chunk));
       if (!out) {
-        error = "Could not write " + out_path.string() + " (disk full?)";
+        error = "Could not write " + PathToUtf8(out_path) + " (disk full?)";
         return false;
       }
       offset += chunk;

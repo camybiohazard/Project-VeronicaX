@@ -2,7 +2,8 @@ Third-party licences for code included in this release.
 
 VeronicaX is built with the ReXGlue SDK (https://github.com/rexglue/rexglue-sdk),
 which includes code derived from Xenia (https://xenia.jp). Its runtime and GPU
-plugin libraries (librexruntime.so, librexgpu-xenos.so) contain the libraries
+plugin libraries (librexruntime.so and librexgpu-xenos.so on Linux,
+rexruntime.dll and rexgpu-xenos.dll on Windows) contain the libraries
 listed in the folders here. Each folder's SOURCE file names the exact
 upstream commit.
 
