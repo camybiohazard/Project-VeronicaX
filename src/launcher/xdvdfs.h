@@ -1,0 +1,60 @@
+// veronicax - XDVDFS (Xbox / Xbox 360 disc image) reader
+//
+// C++ port of scripts/xiso_extract.py: lists and extracts the files of a
+// full XGD1-3 dump or a trimmed game-partition ISO.
+
+#pragma once
+
+#include <atomic>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace veronicax {
+
+class XdvdfsImage {
+ public:
+  struct Entry {
+    std::string path;  // relative, '/'-separated
+    bool is_dir = false;
+    uint32_t sector = 0;
+    uint32_t size = 0;
+  };
+
+  // Opens the image and walks its directory tree. Returns nullopt and sets
+  // `error` if the file is not an XDVDFS image.
+  static std::optional<XdvdfsImage> Open(const std::filesystem::path& iso, std::string& error);
+
+  const std::vector<Entry>& entries() const { return entries_; }
+  uint64_t total_file_bytes() const { return total_file_bytes_; }
+
+  // Finds a file entry by path, ignoring case like the Xbox does.
+  const Entry* Find(std::string_view path) const;
+
+  // Reads a whole file into memory.
+  bool ReadFile(const Entry& entry, std::vector<uint8_t>& out);
+
+  // Extracts every entry under `dest`. `progress` gets the bytes written so
+  // far; setting `cancel` stops early. Returns false and sets `error` on
+  // failure or cancellation.
+  bool ExtractAll(const std::filesystem::path& dest, const std::atomic<bool>& cancel,
+                  const std::function<void(uint64_t)>& progress, std::string& error);
+
+ private:
+  XdvdfsImage() = default;
+  bool ReadAt(uint64_t offset, void* data, size_t size);
+  bool WalkDirectory(uint32_t sector, uint32_t size, const std::string& prefix, int depth,
+                     std::string& error);
+
+  std::filesystem::path path_;
+  std::ifstream file_;
+  uint64_t partition_offset_ = 0;
+  std::vector<Entry> entries_;
+  uint64_t total_file_bytes_ = 0;
+};
+
+}  // namespace veronicax

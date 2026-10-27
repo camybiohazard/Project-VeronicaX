@@ -14,7 +14,7 @@ trap 'rm -f "$log"' EXIT
 # Wayland without libdecor: libdecor's GTK plugin can abort outside a full
 # desktop session, and X11 takes a different (crashing) boot path.
 SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0 timeout -s INT 30 "$bin" --game_data_root="$root/game/extracted" \
-    --log_file="$log" --log_level=debug > /dev/null 2>&1 || true
+    --log_file="$log" --log_level=debug --veronicax_show_launcher=false > /dev/null 2>&1 || true
 
 fatal="$(grep -E '\[critical\]|FATAL|Unhandled guest access violation|Switch case out of range' "$log" | head -n 3 || true)"
 if [ -n "$fatal" ]; then
