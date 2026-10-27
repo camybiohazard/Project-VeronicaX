@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Download the licence texts of the code shipped in a release into
 # third_party_licenses/. That is ReXGlue itself plus the libraries compiled
-# into librexruntime.so and librexgpu-xenos.so. Each file comes from the
+# into the runtime and GPU plugin libraries (librexruntime.so /
+# rexruntime.dll, librexgpu-xenos.so / rexgpu-xenos.dll). Each file comes from the
 # commit ReXGlue pins for that library.
 #
 # The table matches ReXGlue bd833a2 (SDK 0.10.0.24-dev). After an SDK update,
@@ -32,6 +33,8 @@ libraries=(
     "CLI11 CLIUtils/CLI11 bfffd37e1f804ca4fae1caae106935791696b6a9 LICENSE"
     "o1heap pavel-kirienko/o1heap 388a73fd9007300e5130c5fe352d9ce3288b6dde LICENSE"
     "utfcpp nemtrif/utfcpp 63d64de49fd6b829f7c8694df5ab2ee625cb7134 LICENSE"
+    # Windows (D3D12) only: headers vendored in ReXGlue's thirdparty/dxc.
+    "DirectXShaderCompiler microsoft/DirectXShaderCompiler 6b6f40200bea5ed99367513f53f6a28e52fd3d0e LICENSE.TXT"
 )
 
 fetch() {  # repo commit path dest
@@ -60,7 +63,8 @@ Third-party licences for code included in this release.
 
 VeronicaX is built with the ReXGlue SDK (https://github.com/rexglue/rexglue-sdk),
 which includes code derived from Xenia (https://xenia.jp). Its runtime and GPU
-plugin libraries (librexruntime.so, librexgpu-xenos.so) contain the libraries
+plugin libraries (librexruntime.so and librexgpu-xenos.so on Linux,
+rexruntime.dll and rexgpu-xenos.dll on Windows) contain the libraries
 listed in the folders here. Each folder's SOURCE file names the exact
 upstream commit.
 

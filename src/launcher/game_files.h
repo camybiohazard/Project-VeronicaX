@@ -27,6 +27,17 @@ inline uint64_t Fnv1a64(std::span<const uint8_t> data) {
   return hash;
 }
 
+// Paths cross the UI and logs as UTF-8. On Windows, path::string() uses the
+// ANSI code page and throws for characters it can't represent.
+inline std::filesystem::path PathFromUtf8(const std::string& utf8) {
+  return std::filesystem::path(std::u8string(utf8.begin(), utf8.end()));
+}
+
+inline std::string PathToUtf8(const std::filesystem::path& path) {
+  std::u8string utf8 = path.u8string();
+  return std::string(utf8.begin(), utf8.end());
+}
+
 inline std::string HexU64(uint64_t value) {
   static constexpr char kDigits[] = "0123456789ABCDEF";
   std::string out(16, '0');

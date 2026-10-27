@@ -7,10 +7,22 @@
 #include <cstdio>
 #include <vector>
 
-#include <SDL3/SDL_dialog.h>
 #include <imgui.h>
 
 #include <rex/logging.h>
+
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <commdlg.h>
+#else
+#include <SDL3/SDL_dialog.h>
+#endif
 
 #include "launcher/game_files.h"
 #include "launcher/xdvdfs.h"
@@ -51,9 +63,38 @@ std::string FormatGiB(uint64_t bytes) {
   return text;
 }
 
+using PickedCallback = std::function<void(std::optional<std::string>)>;
+
+#if defined(_WIN32)
+// The SDK links a second, uninitialised static SDL into the executable on
+// Windows (SDL isn't exported from rexruntime.dll), so use the native
+// dialog. It runs on its own thread to keep the window drawing.
+void ShowIsoPicker(PickedCallback callback) {
+  HWND owner = GetForegroundWindow();
+  std::thread([owner, callback = std::move(callback)]() {
+    wchar_t file[MAX_PATH * 4] = {};
+    OPENFILENAMEW ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = owner;
+    ofn.lpstrFilter = L"Xbox 360 disc image (*.iso)\0*.iso\0All files (*.*)\0*.*\0";
+    ofn.lpstrFile = file;
+    ofn.nMaxFile = DWORD(std::size(file));
+    ofn.lpstrTitle = L"Select your Resident Evil CODE: Veronica X ISO";
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
+    if (!GetOpenFileNameW(&ofn)) {
+      callback(std::nullopt);
+      return;
+    }
+    int size = WideCharToMultiByte(CP_UTF8, 0, file, -1, nullptr, 0, nullptr, nullptr);
+    std::string utf8(size_t(std::max(size, 1)) - 1, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, file, -1, utf8.data(), size, nullptr, nullptr);
+    callback(std::move(utf8));
+  }).detach();
+}
+#else
 void SDLCALL OnIsoPicked(void* userdata, const char* const* files, int filter) {
   (void)filter;
-  auto* callback = static_cast<std::function<void(std::optional<std::string>)>*>(userdata);
+  auto* callback = static_cast<PickedCallback*>(userdata);
   if (files && files[0]) {
     (*callback)(std::string(files[0]));
   } else {
@@ -61,6 +102,17 @@ void SDLCALL OnIsoPicked(void* userdata, const char* const* files, int filter) {
   }
   delete callback;
 }
+
+void ShowIsoPicker(PickedCallback callback) {
+  static const SDL_DialogFileFilter kFilters[] = {
+      {"Xbox 360 disc image", "iso"},
+      {"All files", "*"},
+  };
+  // Owned by the callback, which SDL may invoke on another thread.
+  SDL_ShowOpenFileDialog(OnIsoPicked, new PickedCallback(std::move(callback)), nullptr, kFilters,
+                         2, nullptr, false);
+}
+#endif
 
 }  // namespace
 
@@ -96,7 +148,7 @@ void LauncherDialog::OnDraw(ImGuiIO& io) {
       picked_iso_.reset();
       picker_open_ = false;
       if (!iso.empty()) {
-        StartExtraction(iso);
+        StartExtraction(PathFromUtf8(iso));
       }
     }
   }
@@ -124,7 +176,7 @@ void LauncherDialog::DrawChooseIso() {
   ImGui::TextWrapped(
       "Select your Xbox 360 disc image (ISO) of Resident Evil CODE: Veronica X. Its files "
       "will be extracted to:");
-  ImGui::TextWrapped("%s", options_.game_dir.string().c_str());
+  ImGui::TextWrapped("%s", PathToUtf8(options_.game_dir).c_str());
   ImGui::TextWrapped("This needs about 2 GB of free space.");
   ImGui::Spacing();
   ImGui::BeginDisabled(picker_open_);
@@ -210,11 +262,6 @@ void LauncherDialog::DrawSettings() {
     ImGui::EndCombo();
   }
 
-  bool vsync = rex::cvar::Query<bool>("vsync");
-  if (ImGui::Checkbox("VSync", &vsync)) {
-    SetFlag("vsync", vsync ? "true" : "false");
-  }
-
   bool show_launcher = REXCVAR_GET(veronicax_show_launcher);
   if (ImGui::Checkbox("Show this launcher at startup", &show_launcher)) {
     SetFlag("veronicax_show_launcher", show_launcher ? "true" : "false");
@@ -229,17 +276,12 @@ void LauncherDialog::DrawSettings() {
 
 void LauncherDialog::OpenIsoPicker() {
   picker_open_ = true;
-  // Owned by the callback, which can arrive after this dialog is gone.
-  auto* callback = new std::function<void(std::optional<std::string>)>(
-      [this](std::optional<std::string> path) {
-        std::lock_guard lock(picked_mutex_);
-        picked_iso_ = path.value_or(std::string());
-      });
-  static const SDL_DialogFileFilter kFilters[] = {
-      {"Xbox 360 disc image", "iso"},
-      {"All files", "*"},
-  };
-  SDL_ShowOpenFileDialog(OnIsoPicked, callback, nullptr, kFilters, 2, nullptr, false);
+  // Only reachable from the setup screen, and Play (which deletes this
+  // dialog) only exists once a pick has been handled.
+  ShowIsoPicker([this](std::optional<std::string> path) {
+    std::lock_guard lock(picked_mutex_);
+    picked_iso_ = path.value_or(std::string());
+  });
 }
 
 void LauncherDialog::StartExtraction(std::filesystem::path iso) {
@@ -251,7 +293,7 @@ void LauncherDialog::StartExtraction(std::filesystem::path iso) {
   total_bytes_ = 0;
   {
     std::lock_guard lock(status_mutex_);
-    status_ = "Reading " + iso.filename().string() + "...";
+    status_ = "Reading " + PathToUtf8(iso.filename()) + "...";
   }
   state_ = State::kWorking;
   worker_ = std::thread([this, iso = std::move(iso)]() { ExtractWorker(iso); });
@@ -317,7 +359,7 @@ void LauncherDialog::ExtractWorker(std::filesystem::path iso) {
   if (ec) {
     return Fail("Could not move the extracted files into place: " + ec.message());
   }
-  REXLOG_INFO("Launcher: extracted {} into {}", iso.string(), game_dir.string());
+  REXLOG_INFO("Launcher: extracted {} into {}", PathToUtf8(iso), PathToUtf8(game_dir));
   state_ = State::kReady;
 }
 
