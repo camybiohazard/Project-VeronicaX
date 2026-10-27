@@ -66,6 +66,21 @@ executable; F4 in game has the full ReXGlue settings.
 - Skip it with `--veronicax_show_launcher=false`. The dev scripts do, and
   they pass `--game_data_root`, which skips the setup step.
 
+## Release package (Linux)
+
+```sh
+scripts/fetch-licenses.sh            # once per SDK version: third_party_licenses/
+scripts/package-linux.sh [version]   # dist/VeronicaX-<version>-linux-x86_64.tar.gz
+```
+
+This builds the `dist-linux` preset (Release with `-fno-math-errno`, which
+keeps the game at the SDK's glibc 2.35 / libstdc++ 3.4.32 floor) and stages
+the program, both SDK libraries, a player README, `LICENSE` and
+`third_party_licenses/`. The script then checks the package: no game data
+or personal files, every library resolving from the package or the system,
+and nothing above the glibc floor. Finally it writes the `.tar.gz` and a
+`.sha256`.
+
 ## Windows build (cross-compiled from Linux)
 
 ```sh

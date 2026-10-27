@@ -41,6 +41,16 @@
                 "lhs": "${hostSystemName}",
                 "rhs": "Linux"
             }
+        },
+        {
+            "name": "dist-linux",
+            "displayName": "VeronicaX Release for distribution (Linux)",
+            "inherits": "linux-amd64-release",
+            "binaryDir": "${sourceDir}/out/build/dist-linux",
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/sdk",
+                "CMAKE_CXX_FLAGS": "-fno-math-errno"
+            }
         }
     ],
     "buildPresets": [
@@ -59,6 +69,10 @@
         {
             "name": "win-cross-release",
             "configurePreset": "win-cross-release"
+        },
+        {
+            "name": "dist-linux",
+            "configurePreset": "dist-linux"
         }
     ]
 }
