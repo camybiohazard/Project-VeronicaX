@@ -14,4 +14,4 @@ if [ -z "$bin" ]; then
 fi
 
 mkdir -p notes/logs
-exec "$bin" --game_data_root="$root/game/extracted" --log_file="$root/notes/logs/run.log" "$@"
+exec "$bin" --game_data_root="$root/game/extracted" --log_file="$root/notes/logs/run.log" --veronicax_show_launcher=false "$@"

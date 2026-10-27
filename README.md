@@ -51,6 +51,21 @@ For crashes, freezes and hangs, use `scripts/debug-run.sh`. It runs the game
 under gdb and writes the faulting thread, guest registers, the guest object
 and its vtable, and every stack to `notes/logs/hang-backtrace.txt`.
 
+## Launcher
+
+Without a verified `game/` folder next to the executable, the game window
+opens on a setup screen. It asks for the ISO, checks that its `Default.xex` is
+the version this build was recompiled from, and extracts the disc into `game/`
+(staging into `game.partial/`, then renaming). After that, every launch shows
+a settings screen (fullscreen or windowed, window size, internal resolution,
+VSync) with a Play button. Choices are saved to `veronicax.toml` next to the
+executable; F4 in game has the full ReXGlue settings.
+
+- Source: `src/launcher/` (`xdvdfs.*` is the disc reader, a port of
+  `scripts/xiso_extract.py`).
+- Skip it with `--veronicax_show_launcher=false`. The dev scripts do, and
+  they pass `--game_data_root`, which skips the setup step.
+
 ## Windows build (cross-compiled from Linux)
 
 ```sh

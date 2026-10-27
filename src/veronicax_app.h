@@ -4,8 +4,14 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include <rex/cvar.h>
+#include <rex/filesystem.h>
 #include <rex/rex_app.h>
+
+#include "launcher/game_files.h"
+#include "launcher/launcher_dialog.h"
 
 class VeronicaxApp : public rex::ReXApp {
  public:
@@ -15,6 +21,39 @@ class VeronicaxApp : public rex::ReXApp {
       rex::ui::WindowedAppContext& ctx) {
     return std::unique_ptr<VeronicaxApp>(new VeronicaxApp(ctx, "veronicax",
         PPCImageConfig));
+  }
+
+  // Game files live in "game" next to the executable unless
+  // --game_data_root points elsewhere (as the dev scripts do).
+  void OnConfigurePaths(rex::PathConfig& paths) override {
+    game_root_from_flag_ = !paths.game_data_root.empty();
+    if (!game_root_from_flag_) {
+      paths.game_data_root = rex::filesystem::GetExecutableFolder() / "game";
+    }
+  }
+
+  // Shows the launcher before the runtime starts: ISO setup when the game
+  // files are missing, otherwise display settings and Play.
+  std::optional<rex::PathConfig> OnFinalizePaths(
+      const rex::PathConfig& defaults,
+      std::function<void(rex::PathConfig)> resume) override {
+    bool have_game =
+        game_root_from_flag_
+            ? std::filesystem::is_regular_file(defaults.game_data_root /
+                                               veronicax::kXexName)
+            : veronicax::IsVerifiedGameFolder(defaults.game_data_root);
+    if (have_game && !REXCVAR_GET(veronicax_show_launcher)) {
+      return defaults;
+    }
+    veronicax::LauncherDialog::Options options{
+        defaults.game_data_root, defaults.config_path, !have_game};
+    // The dialog deletes itself when closed; resume after its frame ends.
+    new veronicax::LauncherDialog(
+        imgui_drawer(), std::move(options), [this, defaults, resume]() {
+          app_context().CallInUIThreadDeferred(
+              [defaults, resume]() { resume(defaults); });
+        });
+    return std::nullopt;
   }
 
   // The disc ships "Default.xex"; the runtime asks for "default.xex", which
@@ -35,6 +74,7 @@ class VeronicaxApp : public rex::ReXApp {
   // setup; the render target cache reads this one per draw and resolve.
   void OnPostSetup() override {
     // Full-range SNORM16 render targets break the lighter's light and
+    // shadows in the opening jail cell (found via VeronicaRecomp's settings).
     // Applied only when no config file, environment variable or flag set it
     // (checked by source, since "true" is also the compiled-in default).
     if (rex::cvar::GetFlagSource("snorm16_render_target_full_range") ==
@@ -53,5 +93,7 @@ class VeronicaxApp : public rex::ReXApp {
   // std::unique_ptr<rex::ui::AchievementNotificationDialog>
   // CreateAchievementNotificationDialog() override;
   // void OnShutdown() override {}
-  // void OnConfigurePaths(rex::PathConfig& paths) override {}
+
+ private:
+  bool game_root_from_flag_ = false;
 };

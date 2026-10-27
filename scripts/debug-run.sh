@@ -62,6 +62,7 @@ gdb -q -batch \
         --game_data_root="$root/game/extracted" \
         --log_file="$root/notes/logs/run.log" \
         --log_level=debug \
+        --veronicax_show_launcher=false \
         "$@"
 
 [ -f "$out" ] && echo "Thread stacks saved to notes/logs/hang-backtrace.txt"
