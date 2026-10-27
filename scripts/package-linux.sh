@@ -64,7 +64,15 @@ Files created next to the program
   game/            extracted game files (from your ISO)
   veronicax.toml   your settings
   logs/            log files: include the newest one when reporting a problem
-Saves and caches go in ~/.local/share/veronicax/.
+
+Saves and profile
+  Saves are kept outside this folder, so they survive updates and
+  re-extracting the game:
+    ~/.local/share/veronicax/            (or \$XDG_DATA_HOME/veronicax/)
+      B13EBABEBABEBABE/43430822/         your saves (copy this to back them up)
+      achievements/                      unlocked achievements
+      cache/                             shader cache (safe to delete)
+  To start over, delete B13EBABEBABEBABE/ and achievements/.
 
 Requirements
   - 64-bit x86 CPU with SSE4.1

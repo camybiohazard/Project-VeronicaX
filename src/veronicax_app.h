@@ -89,6 +89,7 @@ class VeronicaxApp : public rex::ReXApp {
       REXLOG_WARN("vsync must stay on for correct game speed; enabling it");
       rex::cvar::SetFlagByName("vsync", "true");
     }
+    UnlinkGuestMemoryFile();
   }
 
   // Override virtual hooks for customization:
@@ -101,5 +102,23 @@ class VeronicaxApp : public rex::ReXApp {
   // void OnShutdown() override {}
 
  private:
+  // The runtime backs guest memory with a /dev/shm/xenia_memory_* file and
+  // only unlinks it on a clean shutdown, but it always hard-exits, so every
+  // run left one behind (several GB of RAM after a few dozen runs, then bus
+  // errors). The mapping only uses the open descriptor, so drop the name now;
+  // the kernel frees it when the process ends, however it ends.
+  static void UnlinkGuestMemoryFile() {
+#if defined(__linux__)
+    std::error_code ec;
+    for (const auto& fd : std::filesystem::directory_iterator("/proc/self/fd", ec)) {
+      std::filesystem::path target = std::filesystem::read_symlink(fd.path(), ec);
+      if (!ec && target.parent_path() == "/dev/shm" &&
+          target.filename().string().starts_with("xenia_memory_")) {
+        std::filesystem::remove(target, ec);
+      }
+    }
+#endif
+  }
+
   bool game_root_from_flag_ = false;
 };

@@ -13,6 +13,7 @@ include(generated/rexglue.cmake)
 # Sources
 set(VERONICAX_SOURCES
     src/main.cpp
+    src/game_hooks.cpp
     src/launcher/launcher_dialog.cpp
     src/launcher/xdvdfs.cpp
 )
