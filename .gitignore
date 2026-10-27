@@ -25,3 +25,6 @@ __pycache__/
 
 # Windows cross build output
 /build-win/
+
+# Release packages
+/dist/
