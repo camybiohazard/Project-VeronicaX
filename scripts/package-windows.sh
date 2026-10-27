@@ -65,6 +65,15 @@ Files created next to the program
   veronicax.toml   your settings
   logs\\            log files: include the newest one when reporting a problem
 
+Saves and profile
+  Saves are kept outside this folder, so they survive updates and
+  re-extracting the game:
+    Documents\\veronicax\\
+      B13EBABEBABEBABE\\43430822\\    your saves (copy this to back them up)
+      achievements\\                 unlocked achievements
+      cache\\                        shader cache (safe to delete)
+  To start over, delete B13EBABEBABEBABE and achievements.
+
 Requirements
   - Windows 10 or 11, 64-bit
   - A Direct3D 12 capable GPU with an up-to-date driver

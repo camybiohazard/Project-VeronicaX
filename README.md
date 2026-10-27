@@ -58,8 +58,16 @@ opens on a setup screen. It asks for the ISO, checks that its `Default.xex` is
 the version this build was recompiled from, and extracts the disc into `game/`
 (staging into `game.partial/`, then renaming). After that, every launch shows
 a settings screen (fullscreen or windowed, window size, internal resolution)
-with a Play button. VSync is always on: the game runs too fast without it. Choices are saved to `veronicax.toml` next to the
-executable; F4 in game has the full ReXGlue settings.
+with a Play button. VSync is always on: the game runs too fast without it.
+Choices are saved to `veronicax.toml` next to the executable; F4 in game has
+the full ReXGlue settings.
+
+Saves are not next to the executable. They go in ReXGlue's user data folder,
+`~/.local/share/veronicax/` on Linux (`$XDG_DATA_HOME/veronicax/` if set) and
+`Documents\veronicax\` on Windows, so they survive rebuilds and
+re-extraction. `B13EBABEBABEBABE/43430822/` holds the saves (the emulated
+profile's ID, then the game's title ID), `achievements/` the achievements and
+`cache/` the shader cache. `--user_data_root` moves it.
 
 - Source: `src/launcher/` (`xdvdfs.*` is the disc reader, a port of
   `scripts/xiso_extract.py`).
