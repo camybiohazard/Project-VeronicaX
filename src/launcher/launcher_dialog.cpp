@@ -64,6 +64,15 @@ std::string FormatGiB(uint64_t bytes) {
   return text;
 }
 
+// True when `path` is `dir` or somewhere inside it.
+bool IsInside(const std::filesystem::path& path, const std::filesystem::path& dir) {
+  std::error_code ec;
+  std::filesystem::path p = std::filesystem::weakly_canonical(path, ec);
+  std::filesystem::path d = std::filesystem::weakly_canonical(dir, ec);
+  auto [d_end, p_end] = std::mismatch(d.begin(), d.end(), p.begin(), p.end());
+  return !ec && d_end == d.end();
+}
+
 using PickedCallback = std::function<void(std::optional<std::string>)>;
 
 #if defined(_WIN32)
@@ -77,10 +86,12 @@ void ShowIsoPicker(PickedCallback callback) {
     OPENFILENAMEW ofn = {};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = owner;
-    ofn.lpstrFilter = L"Xbox 360 disc image (*.iso)\0*.iso\0All files (*.*)\0*.*\0";
+    // Games on Demand header and data files have no extension ("*.").
+    ofn.lpstrFilter =
+        L"Xbox 360 disc image or Games on Demand\0*.iso;*.\0All files (*.*)\0*.*\0";
     ofn.lpstrFile = file;
     ofn.nMaxFile = DWORD(std::size(file));
-    ofn.lpstrTitle = L"Select your Resident Evil CODE: Veronica X ISO";
+    ofn.lpstrTitle = L"Select your Resident Evil CODE: Veronica X ISO or Games on Demand file";
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
     if (!GetOpenFileNameW(&ofn)) {
       callback(std::nullopt);
@@ -105,9 +116,11 @@ void SDLCALL OnIsoPicked(void* userdata, const char* const* files, int filter) {
 }
 
 void ShowIsoPicker(PickedCallback callback) {
+  // Games on Demand header and data files have no extension, so the default
+  // filter shows everything.
   static const SDL_DialogFileFilter kFilters[] = {
-      {"Xbox 360 disc image", "iso"},
-      {"All files", "*"},
+      {"Xbox 360 disc image or Games on Demand", "*"},
+      {"Xbox 360 disc image (ISO only)", "iso"},
   };
   // Owned by the callback, which SDL may invoke on another thread.
   SDL_ShowOpenFileDialog(OnIsoPicked, new PickedCallback(std::move(callback)), nullptr, kFilters,
@@ -175,13 +188,15 @@ void LauncherDialog::DrawChooseIso() {
   ImGui::TextWrapped("First-time setup");
   ImGui::Separator();
   ImGui::TextWrapped(
-      "Select your Xbox 360 disc image (ISO) of Resident Evil CODE: Veronica X. Its files "
-      "will be extracted to:");
+      "Select your Xbox 360 disc image (ISO) of Resident Evil CODE: Veronica X, or the "
+      "Games on Demand version: pick the file with the long hex name inside "
+      "43430822/00007000 (its .data folder must be next to it). The game files will be "
+      "extracted to:");
   ImGui::TextWrapped("%s", PathToUtf8(options_.game_dir).c_str());
   ImGui::TextWrapped("This needs about 2 GB of free space.");
   ImGui::Spacing();
   ImGui::BeginDisabled(picker_open_);
-  if (ImGui::Button(picker_open_ ? "Waiting for file picker..." : "Select ISO...")) {
+  if (ImGui::Button(picker_open_ ? "Waiting for file picker..." : "Select game file...")) {
     OpenIsoPicker();
   }
   ImGui::EndDisabled();
@@ -214,7 +229,7 @@ void LauncherDialog::DrawFailed() {
   ImGui::Separator();
   ImGui::TextWrapped("%s", error.c_str());
   ImGui::Spacing();
-  if (ImGui::Button("Try another ISO")) {
+  if (ImGui::Button("Try another file")) {
     state_ = State::kChooseIso;
   }
 }
@@ -310,11 +325,11 @@ void LauncherDialog::ExtractWorker(std::filesystem::path iso) {
   // Check the executable before spending minutes on extraction.
   const XdvdfsImage::Entry* xex = image->Find(kXexName);
   if (!xex) {
-    return Fail("This disc image has no Default.xex, so it is not an Xbox 360 game disc.");
+    return Fail("This image has no Default.xex, so it is not an Xbox 360 game disc.");
   }
   std::vector<uint8_t> xex_data;
   if (!image->ReadFile(*xex, xex_data)) {
-    return Fail("The disc image is truncated (Default.xex could not be read).");
+    return Fail("The image is truncated (Default.xex could not be read).");
   }
   uint64_t xex_hash = Fnv1a64(xex_data);
   if (xex_data.size() != kXexSize || xex_hash != kXexFnv1a64) {
@@ -322,14 +337,19 @@ void LauncherDialog::ExtractWorker(std::filesystem::path iso) {
                 HexU64(xex_hash), xex_data.size(), HexU64(kXexFnv1a64));
     return Fail(
         "This is not the version of Resident Evil CODE: Veronica X this build supports. "
-        "It needs the Xbox 360 disc whose Default.xex fingerprint is " +
-        HexU64(kXexFnv1a64) + "; this disc's is " + HexU64(xex_hash) + ".");
+        "It needs the Xbox 360 game whose Default.xex fingerprint is " +
+        HexU64(kXexFnv1a64) + "; this one's is " + HexU64(xex_hash) + ".");
   }
 
   std::error_code ec;
   const std::filesystem::path& game_dir = options_.game_dir;
   std::filesystem::path staging = game_dir;
   staging += ".partial";
+  // Setup replaces the game folder, which would delete a source kept in it.
+  if (IsInside(iso, game_dir) || IsInside(iso, staging)) {
+    return Fail("The selected file is inside " + PathToUtf8(game_dir) +
+                ", which setup replaces. Move it somewhere else first.");
+  }
   std::filesystem::create_directories(game_dir.parent_path(), ec);
   auto space = std::filesystem::space(game_dir.parent_path(), ec);
   uint64_t needed = image->total_file_bytes() + (64ull << 20);
@@ -360,7 +380,8 @@ void LauncherDialog::ExtractWorker(std::filesystem::path iso) {
   if (ec) {
     return Fail("Could not move the extracted files into place: " + ec.message());
   }
-  REXLOG_INFO("Launcher: extracted {} into {}", PathToUtf8(iso), PathToUtf8(game_dir));
+  REXLOG_INFO("Launcher: extracted {} ({}) into {}", PathToUtf8(iso),
+              image->is_games_on_demand() ? "Games on Demand" : "ISO", PathToUtf8(game_dir));
   state_ = State::kReady;
 }
 

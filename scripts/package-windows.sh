@@ -18,7 +18,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
-version="${1:-0.1.0-$(git describe --always --dirty)}"
+version="${1:-0.2.0-$(git describe --always --dirty)}"
 jobs="${2:-4}"
 build="build-win"
 name="VeronicaX-$version-windows-x86_64"
@@ -43,8 +43,9 @@ sed 's/$/\r/' > "$stage/README.txt" <<EOF
 VeronicaX $version - Resident Evil CODE: Veronica X (Xbox 360), recompiled
 for Windows x64.
 
-This package contains no game data. You need your own Xbox 360 disc image
-(ISO) of Resident Evil CODE: Veronica X.
+This package contains no game data. You need your own copy of Resident Evil
+CODE: Veronica X for Xbox 360: a disc image (ISO) or the Games on Demand
+version.
 
 Getting started
   1. Extract the whole zip to a normal folder you can write to, such as
@@ -52,16 +53,18 @@ Getting started
      Program Files. You need about 2 GB of free space.
   2. Run veronicax.exe. Windows may warn "Windows protected your PC" because
      the program is not signed: click "More info", then "Run anyway".
-  3. On first launch, click "Select ISO..." and choose your disc image. The
-     launcher checks it is the supported version and extracts it into a
-     "game" folder here.
+  3. On first launch, click "Select game file..." and choose your ISO. For
+     the Games on Demand version, choose the file with the long hex name in
+     43430822\\00007000 (keep its .data folder next to it). The launcher
+     checks it is the supported version and extracts it into a "game" folder
+     here. Don't keep the ISO or Games on Demand files inside that folder.
   4. Pick your display settings and press Play.
 
 Later launches go straight to the settings screen; untick "Show this launcher
 at startup" to skip it. Press F4 in game for more options.
 
 Files created next to the program
-  game\\            extracted game files (from your ISO)
+  game\\            extracted game files
   veronicax.toml   your settings
   logs\\            log files: include the newest one when reporting a problem
 

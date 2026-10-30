@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cstdio>
 #include <cstring>
 
 namespace veronicax {
@@ -19,11 +20,21 @@ constexpr size_t kMagicSize = sizeof(kMagic) - 1;
 // Trimmed/XISO, XGD3, XGD2, XGD1 game partition offsets.
 constexpr std::array<uint64_t, 4> kPartitionOffsets = {0x0, 0x2080000, 0xFDA0000, 0x18300000};
 constexpr uint8_t kAttrDirectory = 0x10;
+// Games on Demand (SVOD) layout: each DataNNNN file is a master hash block,
+// then 0xCB groups of one sub-hash block and 0xCC data blocks.
+constexpr uint64_t kGodBlockSize = 0x1000;
+constexpr uint64_t kGodGroupData = 0xCC * kGodBlockSize;
+constexpr uint64_t kGodFileData = 0xCB * kGodGroupData;
+constexpr uint32_t kGodContentType = 0x7000;
+constexpr int kGodMaxParts = 10000;
 constexpr int kMaxDepth = 32;
 
 uint16_t ReadU16(const uint8_t* p) { return uint16_t(p[0] | (p[1] << 8)); }
 uint32_t ReadU32(const uint8_t* p) {
   return uint32_t(p[0]) | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16) | (uint32_t(p[3]) << 24);
+}
+uint32_t ReadU32BE(const uint8_t* p) {
+  return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) | (uint32_t(p[2]) << 8) | uint32_t(p[3]);
 }
 
 bool EqualsIgnoreCase(std::string_view a, std::string_view b) {
@@ -32,35 +43,67 @@ bool EqualsIgnoreCase(std::string_view a, std::string_view b) {
          });
 }
 
+// True for an STFS/SVOD package header whose content is a Games on Demand
+// disc.
+bool IsGodHeader(const std::filesystem::path& path) {
+  std::ifstream file(path, std::ios::binary);
+  uint8_t header[0x348];
+  if (!file.read(reinterpret_cast<char*>(header), sizeof(header))) {
+    return false;
+  }
+  bool package = std::memcmp(header, "LIVE", 4) == 0 || std::memcmp(header, "PIRS", 4) == 0 ||
+                 std::memcmp(header, "CON ", 4) == 0;
+  return package && ReadU32BE(header + 0x344) == kGodContentType;
+}
+
 }  // namespace
 
-std::optional<XdvdfsImage> XdvdfsImage::Open(const std::filesystem::path& iso,
+std::optional<XdvdfsImage> XdvdfsImage::Open(const std::filesystem::path& path,
                                              std::string& error) {
   XdvdfsImage image;
-  image.path_ = iso;
-  image.file_.open(iso, std::ios::binary);
-  if (!image.file_) {
-    error = "Could not open " + PathToUtf8(iso);
-    return std::nullopt;
-  }
+  image.path_ = path;
 
-  bool found = false;
-  for (uint64_t offset : kPartitionOffsets) {
-    char magic[kMagicSize];
-    if (image.ReadAt(offset + 32 * kSectorSize, magic, kMagicSize) &&
-        std::memcmp(magic, kMagic, kMagicSize) == 0) {
+  // A DataNNNN file stands for the package whose header sits next to its
+  // "<header>.data" folder.
+  std::filesystem::path header = path;
+  std::filesystem::path parent = path.parent_path();
+  if (EqualsIgnoreCase(PathToUtf8(parent.extension()), ".data")) {
+    header = parent;
+    header.replace_extension();
+  }
+  if (std::filesystem::is_regular_file(header) && IsGodHeader(header)) {
+    if (!image.OpenGamesOnDemand(header, error)) {
+      return std::nullopt;
+    }
+  } else {
+    image.file_.open(path, std::ios::binary);
+    if (!image.file_) {
+      error = "Could not open " + PathToUtf8(path);
+      return std::nullopt;
+    }
+    bool found = false;
+    for (uint64_t offset : kPartitionOffsets) {
       image.partition_offset_ = offset;
-      found = true;
-      break;
+      char magic[kMagicSize];
+      if (image.ReadAt(32 * kSectorSize, magic, kMagicSize) &&
+          std::memcmp(magic, kMagic, kMagicSize) == 0) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      error = "This file is not an Xbox 360 disc image or Games on Demand package.";
+      return std::nullopt;
     }
   }
-  if (!found) {
-    error = "This file is not an Xbox 360 disc image.";
-    return std::nullopt;
-  }
 
+  // The package keeps the volume descriptor at the start of its data
+  // stream, ahead of the sectors it maps.
   uint8_t root[8];
-  if (!image.ReadAt(image.partition_offset_ + 32 * kSectorSize + kMagicSize, root, sizeof(root))) {
+  bool read = image.is_games_on_demand()
+                  ? image.ReadGodData(kMagicSize, root, sizeof(root))
+                  : image.ReadAt(32 * kSectorSize + kMagicSize, root, sizeof(root));
+  if (!read) {
     error = "The disc image is truncated.";
     return std::nullopt;
   }
@@ -70,11 +113,81 @@ std::optional<XdvdfsImage> XdvdfsImage::Open(const std::filesystem::path& iso,
   return image;
 }
 
+bool XdvdfsImage::OpenGamesOnDemand(const std::filesystem::path& header, std::string& error) {
+  uint8_t descriptor[3];
+  {
+    std::ifstream file(header, std::ios::binary);
+    file.seekg(0x395);
+    if (!file.read(reinterpret_cast<char*>(descriptor), sizeof(descriptor))) {
+      error = "The Games on Demand header is truncated.";
+      return false;
+    }
+  }
+  uint32_t data_block_offset = descriptor[0] | (descriptor[1] << 8) | (descriptor[2] << 16);
+  god_base_ = uint64_t(data_block_offset) * kGodBlockSize - kGodBlockSize;
+
+  std::filesystem::path data_dir = header;
+  data_dir += ".data";
+  for (int i = 0; i < kGodMaxParts; ++i) {
+    char name[16];
+    std::snprintf(name, sizeof(name), "Data%04d", i);
+    std::ifstream part(data_dir / name, std::ios::binary);
+    if (!part) {
+      break;
+    }
+    god_parts_.push_back(std::move(part));
+  }
+  if (god_parts_.empty()) {
+    error = "The Games on Demand package has no data files. Keep the " +
+            PathToUtf8(data_dir.filename()) + " folder next to " +
+            PathToUtf8(header.filename()) + ".";
+    return false;
+  }
+
+  char magic[kMagicSize];
+  if (!ReadGodData(0, magic, kMagicSize) || std::memcmp(magic, kMagic, kMagicSize) != 0) {
+    error = "This Games on Demand package does not hold an Xbox 360 disc.";
+    return false;
+  }
+  return true;
+}
+
 bool XdvdfsImage::ReadAt(uint64_t offset, void* data, size_t size) {
+  if (is_games_on_demand()) {
+    return offset >= god_base_ && ReadGodData(offset - god_base_, data, size);
+  }
   file_.clear();
-  file_.seekg(std::streamoff(offset));
+  file_.seekg(std::streamoff(partition_offset_ + offset));
   file_.read(static_cast<char*>(data), std::streamsize(size));
   return size_t(file_.gcount()) == size;
+}
+
+bool XdvdfsImage::ReadGodData(uint64_t offset, void* data, size_t size) {
+  auto* out = static_cast<char*>(data);
+  while (size) {
+    uint64_t part = offset / kGodFileData;
+    uint64_t group = offset % kGodFileData / kGodGroupData;
+    uint64_t in_group = offset % kGodGroupData;
+    if (part >= god_parts_.size()) {
+      return false;
+    }
+    // Skip the master hash block, then whole groups, then this group's
+    // sub-hash block.
+    uint64_t file_offset =
+        kGodBlockSize + group * (kGodBlockSize + kGodGroupData) + kGodBlockSize + in_group;
+    size_t chunk = size_t(std::min<uint64_t>(size, kGodGroupData - in_group));
+    std::ifstream& file = god_parts_[size_t(part)];
+    file.clear();
+    file.seekg(std::streamoff(file_offset));
+    file.read(out, std::streamsize(chunk));
+    if (size_t(file.gcount()) != chunk) {
+      return false;
+    }
+    out += chunk;
+    offset += chunk;
+    size -= chunk;
+  }
+  return true;
 }
 
 bool XdvdfsImage::WalkDirectory(uint32_t sector, uint32_t size, const std::string& prefix,
@@ -87,7 +200,7 @@ bool XdvdfsImage::WalkDirectory(uint32_t sector, uint32_t size, const std::strin
     return true;
   }
   std::vector<uint8_t> table(size);
-  if (!ReadAt(partition_offset_ + uint64_t(sector) * kSectorSize, table.data(), size)) {
+  if (!ReadAt(uint64_t(sector) * kSectorSize, table.data(), size)) {
     error = "The disc image is truncated.";
     return false;
   }
@@ -150,7 +263,7 @@ const XdvdfsImage::Entry* XdvdfsImage::Find(std::string_view path) const {
 
 bool XdvdfsImage::ReadFile(const Entry& entry, std::vector<uint8_t>& out) {
   out.resize(entry.size);
-  return ReadAt(partition_offset_ + uint64_t(entry.sector) * kSectorSize, out.data(), entry.size);
+  return ReadAt(uint64_t(entry.sector) * kSectorSize, out.data(), entry.size);
 }
 
 bool XdvdfsImage::ExtractAll(const std::filesystem::path& dest, const std::atomic<bool>& cancel,
@@ -175,7 +288,7 @@ bool XdvdfsImage::ExtractAll(const std::filesystem::path& dest, const std::atomi
       error = "Could not write " + PathToUtf8(out_path);
       return false;
     }
-    uint64_t offset = partition_offset_ + uint64_t(entry.sector) * kSectorSize;
+    uint64_t offset = uint64_t(entry.sector) * kSectorSize;
     uint64_t remaining = entry.size;
     while (remaining) {
       if (cancel.load()) {

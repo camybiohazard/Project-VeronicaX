@@ -1,9 +1,9 @@
 // veronicax - first-run setup and launch settings
 //
 // Shown in the game window before the runtime starts (ReXApp's
-// OnFinalizePaths hook). Without a verified game folder it asks for the ISO,
-// checks it is the version this build was recompiled from, and extracts it
-// next to the executable. Then it offers a few display settings, saved to the
+// OnFinalizePaths hook). Without a verified game folder it asks for the ISO
+// or Games on Demand package, checks it is the version this build was
+// recompiled from, and extracts it next to the executable. Then it offers a few display settings, saved to the
 // config file, and a Play button.
 
 #pragma once

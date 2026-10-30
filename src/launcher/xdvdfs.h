@@ -1,7 +1,9 @@
 // veronicax - XDVDFS (Xbox / Xbox 360 disc image) reader
 //
 // C++ port of scripts/xiso_extract.py: lists and extracts the files of a
-// full XGD1-3 dump or a trimmed game-partition ISO.
+// full XGD1-3 dump or a trimmed game-partition ISO. Also reads Games on
+// Demand packages, which hold the same game partition split over
+// <header>.data/Data0000... with hash blocks interleaved.
 
 #pragma once
 
@@ -25,9 +27,12 @@ class XdvdfsImage {
     uint32_t size = 0;
   };
 
-  // Opens the image and walks its directory tree. Returns nullopt and sets
-  // `error` if the file is not an XDVDFS image.
-  static std::optional<XdvdfsImage> Open(const std::filesystem::path& iso, std::string& error);
+  // Opens the image and walks its directory tree. `path` is an ISO, a Games
+  // on Demand header file, or one of its DataNNNN files. Returns nullopt and
+  // sets `error` if it is neither.
+  static std::optional<XdvdfsImage> Open(const std::filesystem::path& path, std::string& error);
+
+  bool is_games_on_demand() const { return !god_parts_.empty(); }
 
   const std::vector<Entry>& entries() const { return entries_; }
   uint64_t total_file_bytes() const { return total_file_bytes_; }
@@ -46,13 +51,21 @@ class XdvdfsImage {
 
  private:
   XdvdfsImage() = default;
+  bool OpenGamesOnDemand(const std::filesystem::path& header, std::string& error);
+  // `offset` is relative to the game partition (sector * 0x800).
   bool ReadAt(uint64_t offset, void* data, size_t size);
+  // Reads the Games on Demand data stream, with the hash blocks skipped.
+  bool ReadGodData(uint64_t offset, void* data, size_t size);
   bool WalkDirectory(uint32_t sector, uint32_t size, const std::string& prefix, int depth,
                      std::string& error);
 
   std::filesystem::path path_;
   std::ifstream file_;
   uint64_t partition_offset_ = 0;
+  // Games on Demand: the DataNNNN files, and how far into the partition
+  // their data stream starts (the package drops the unused leading sectors).
+  std::vector<std::ifstream> god_parts_;
+  uint64_t god_base_ = 0;
   std::vector<Entry> entries_;
   uint64_t total_file_bytes_ = 0;
 };

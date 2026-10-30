@@ -54,9 +54,11 @@ and its vtable, and every stack to `notes/logs/hang-backtrace.txt`.
 ## Launcher
 
 Without a verified `game/` folder next to the executable, the game window
-opens on a setup screen. It asks for the ISO, checks that its `Default.xex` is
-the version this build was recompiled from, and extracts the disc into `game/`
-(staging into `game.partial/`, then renaming). After that, every launch shows
+opens on a setup screen. It asks for the ISO or a Games on Demand package
+(the header file in `43430822/00007000/`, or any `DataNNNN` file next to it),
+checks that its `Default.xex` is the version this build was recompiled from,
+and extracts the disc into `game/` (staging into `game.partial/`, then
+renaming). It refuses a source inside `game/`, since that folder is replaced. After that, every launch shows
 a settings screen (fullscreen or windowed, window size, internal resolution)
 with a Play button. VSync is always on: the game runs too fast without it.
 Choices are saved to `veronicax.toml` next to the executable; F4 in game has
@@ -70,7 +72,7 @@ profile's ID, then the game's title ID), `achievements/` the achievements and
 `cache/` the shader cache. `--user_data_root` moves it.
 
 - Source: `src/launcher/` (`xdvdfs.*` is the disc reader, a port of
-  `scripts/xiso_extract.py`).
+  `scripts/xiso_extract.py`, plus the Games on Demand (SVOD) layout).
 - Skip it with `--veronicax_show_launcher=false`. The dev scripts do, and
   they pass `--game_data_root`, which skips the setup step.
 
