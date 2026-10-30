@@ -86,9 +86,10 @@ void ShowIsoPicker(PickedCallback callback) {
     OPENFILENAMEW ofn = {};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = owner;
-    // Games on Demand header and data files have no extension ("*.").
+    // Games on Demand header and data files have no extension, and the
+    // dialog ignores "*." for those, so the default filter shows everything.
     ofn.lpstrFilter =
-        L"Xbox 360 disc image or Games on Demand\0*.iso;*.\0All files (*.*)\0*.*\0";
+        L"Xbox 360 disc image or Games on Demand\0*.*\0Xbox 360 disc image (ISO only)\0*.iso\0";
     ofn.lpstrFile = file;
     ofn.nMaxFile = DWORD(std::size(file));
     ofn.lpstrTitle = L"Select your Resident Evil CODE: Veronica X ISO or Games on Demand file";
