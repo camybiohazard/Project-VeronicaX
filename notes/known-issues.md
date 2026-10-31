@@ -45,14 +45,14 @@ device selector with no fatal errors. Run it after every codegen
 change. It caught a scanner bug that shrank 114 functions to one
 instruction, which produced a black screen with no error at all.
 
-Since 2026-10-31 the boot to the device selector sometimes takes over 60 s
-instead of about 15 s. The game keeps rendering at 30 fps, so it's waiting
-rather than frozen. The official prebuilt runtime does the same on the same
-binary, so it isn't the source-built SDK, and deleting the saves doesn't
-change it; the cause is unknown. The smoke test therefore stops as soon as
-the selector appears but waits up to 90 s before failing, and prints how long
-the boot took. To compare runtimes, swap the .so links in
-out/build/<preset>/ and use a fresh log per run (log files append).
+Left alone, the game takes anywhere from about 15 s to over 90 s to show the
+device selector. It renders at 30 fps throughout, the official prebuilt
+runtime does the same, and a reboot doesn't change it. In normal play the
+prompt comes when the player picks New Game or Load, so this is the game's
+own unattended title behaviour, not a fault. The smoke test therefore waits
+up to 90 s and prints the boot time. Run it hands-off: pressing buttons makes
+it pass as soon as you reach the prompt. To compare runtimes, swap the .so
+links in out/build/<preset>/ and use a fresh log per run (log files append).
 
 ## "Disc read error" when opening doors (fixed 2026-10-26)
 

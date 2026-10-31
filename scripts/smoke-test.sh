@@ -4,6 +4,8 @@
 # into a good boot) and fails only after [limit] seconds (default 90): some
 # boots on this machine take over a minute (notes/known-issues.md, Testing).
 # Run after every codegen change. Opens the game window briefly.
+# In a terminal it waits 10 s before exiting, so a window that closes with the
+# script still shows the result; SMOKE_NO_PAUSE=1 skips that.
 # Usage: scripts/smoke-test.sh [preset] [limit]
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,7 +14,14 @@ cd "$root"
 bin="out/build/${1:-dev-relwithdebinfo}/veronicax"
 limit="${2:-90}"
 log="$(mktemp)"
-trap 'rm -f "$log"' EXIT
+finish() {
+    rm -f "$log"
+    if [ -t 1 ] && [ "${SMOKE_NO_PAUSE:-0}" != 1 ]; then
+        echo "Closing in 10 s..."
+        sleep 10
+    fi
+}
+trap finish EXIT
 fatal_re='\[critical\]|FATAL|Unhandled guest access violation|Switch case out of range'
 
 # Wayland without libdecor: libdecor's GTK plugin can abort outside a full

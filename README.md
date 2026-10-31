@@ -140,6 +140,12 @@ To try a build directly on Windows, copy `veronicax.exe` and the `.dll` files
 from `build-win/` and run it; the launcher sets up the game files. The PC
 needs the Visual C++ 2015-2022 x64 redistributable.
 
+To try a Windows package on Linux, `scripts/run-proton.sh [package folder]`
+runs it under Steam's Proton Experimental (Steam needn't be open). It
+defaults to the newest `dist/VeronicaX-*-windows-x86_64` and keeps its Wine
+prefix, and so the Windows saves, in `~/.local/share/veronicax-proton`. In
+the launcher, Linux files are on `Z:`.
+
 ## Status
 
 - [x] ISO extracted (`Default.xex`, no extra DLL modules)
