@@ -1,0 +1,126 @@
+diff --git a/include/rex/system/xmemory.h b/include/rex/system/xmemory.h
+index 0c39a42..b90526c 100644
+--- a/include/rex/system/xmemory.h
++++ b/include/rex/system/xmemory.h
+@@ -315,6 +315,8 @@ class PhysicalHeap : public BaseHeap {
+ 
+   void EnableAccessCallbacks(uint32_t physical_address, uint32_t length,
+                              bool enable_invalidation_notifications, bool enable_data_providers);
++  // Drops GPU-held data for a newly committed range (see xmemory.cpp).
++  void InvalidateGpuData(uint32_t address, uint32_t size, uint32_t allocation_type);
+   // Returns true if any page in the range was watched.
+   bool TriggerCallbacks(std::unique_lock<std::recursive_mutex> global_lock_locked_once,
+                         uint32_t virtual_address, uint32_t length, bool is_write,
+diff --git a/src/system/xmemory.cpp b/src/system/xmemory.cpp
+index 76cc877..d643878 100644
+--- a/src/system/xmemory.cpp
++++ b/src/system/xmemory.cpp
+@@ -1902,8 +1902,9 @@ bool PhysicalHeap::Alloc(uint32_t size, uint32_t alignment, uint32_t allocation_
+   alignment = rex::round_up(alignment, page_size_);
+ 
+   // Global critical region before heap_mutex_ - see
+-  // AcquireHostPageReconcileLock for why the order matters.
+-  auto global_lock = AcquireHostPageReconcileLock();
++  // AcquireHostPageReconcileLock for why the order matters. Always taken here
++  // (not only when reconciling host pages) because InvalidateGpuData needs it.
++  auto global_lock = global_critical_region_.Acquire();
+   std::lock_guard<std::recursive_mutex> heap_lock(heap_mutex_);
+ 
+   // Allocate from parent heap (gets our physical address in 0-512mb).
+@@ -1924,6 +1925,7 @@ bool PhysicalHeap::Alloc(uint32_t size, uint32_t alignment, uint32_t allocation_
+     // TODO(benvanik): don't leak parent memory.
+     return false;
+   }
++  InvalidateGpuData(address, size, allocation_type);
+   *out_address = address;
+   return true;
+ }
+@@ -1935,8 +1937,9 @@ bool PhysicalHeap::AllocFixed(uint32_t base_address, uint32_t size, uint32_t ali
+   alignment = rex::round_up(alignment, page_size_);
+ 
+   // Global critical region before heap_mutex_ - see
+-  // AcquireHostPageReconcileLock for why the order matters.
+-  auto global_lock = AcquireHostPageReconcileLock();
++  // AcquireHostPageReconcileLock for why the order matters. Always taken here
++  // (not only when reconciling host pages) because InvalidateGpuData needs it.
++  auto global_lock = global_critical_region_.Acquire();
+   std::lock_guard<std::recursive_mutex> heap_lock(heap_mutex_);
+ 
+   // Allocate from parent heap (gets our physical address in 0-512mb).
+@@ -1957,6 +1960,7 @@ bool PhysicalHeap::AllocFixed(uint32_t base_address, uint32_t size, uint32_t ali
+     // TODO(benvanik): don't leak parent memory.
+     return false;
+   }
++  InvalidateGpuData(address, size, allocation_type);
+ 
+   return true;
+ }
+@@ -1971,8 +1975,9 @@ bool PhysicalHeap::AllocRange(uint32_t low_address, uint32_t high_address, uint3
+   alignment = rex::round_up(alignment, page_size_);
+ 
+   // Global critical region before heap_mutex_ - see
+-  // AcquireHostPageReconcileLock for why the order matters.
+-  auto global_lock = AcquireHostPageReconcileLock();
++  // AcquireHostPageReconcileLock for why the order matters. Always taken here
++  // (not only when reconciling host pages) because InvalidateGpuData needs it.
++  auto global_lock = global_critical_region_.Acquire();
+   std::lock_guard<std::recursive_mutex> heap_lock(heap_mutex_);
+ 
+   // Allocate from parent heap (gets our physical address in 0-512mb).
+@@ -1995,6 +2000,7 @@ bool PhysicalHeap::AllocRange(uint32_t low_address, uint32_t high_address, uint3
+     // TODO(benvanik): don't leak parent memory.
+     return false;
+   }
++  InvalidateGpuData(address, size, allocation_type);
+   *out_address = address;
+   return true;
+ }
+@@ -2337,6 +2343,21 @@ std::unique_lock<std::recursive_mutex> PhysicalHeap::AcquireHostPageReconcileLoc
+   return lock;
+ }
+ 
++void PhysicalHeap::InvalidateGpuData(uint32_t address, uint32_t size, uint32_t allocation_type) {
++  // A new allocation belongs to the CPU, so drop any GPU-side copy of it.
++  // Release only invalidates pages watched in the releasing heap, and GPU
++  // writes that land after a release (or in pages no view had committed) are
++  // never watched at all: the GPU would keep its stale copy and miss every CPU
++  // write to the new allocation (corrupted second intro FMV and textures).
++  if (!(allocation_type & memory::kMemoryAllocationCommit) || !size) {
++    return;
++  }
++  uint32_t physical_address = GetPhysicalAddress(address);
++  for (auto invalidation_callback : memory_->physical_memory_invalidation_callbacks_) {
++    invalidation_callback->first(invalidation_callback->second, physical_address, size, true);
++  }
++}
++
+ bool PhysicalHeap::IsHostPageWriteWatched(uint32_t host_page_number) const {
+   // Indices match EnableAccessCallbacks: both count host pages from
+   // membase_ + heap_base_, including host_address_offset().
+diff --git a/src/system/xthread.cpp b/src/system/xthread.cpp
+index 77bce25..7f82fee 100644
+--- a/src/system/xthread.cpp
++++ b/src/system/xthread.cpp
+@@ -932,11 +932,20 @@ X_STATUS XThread::Resume(uint32_t* out_suspend_count) {
+   uint32_t unused_host_suspend_count = 0;
+ 
+ #if REX_PLATFORM_WIN32
+-  uint8_t previous_suspend_count =
+-      reinterpret_cast<std::atomic_uint8_t*>(&guest_thread->suspend_count)->fetch_sub(1);
++  // Don't go below zero: resuming a running thread would wrap the count to
++  // 255, and the next Suspend would wrap it back to 0 and not suspend.
++  auto& suspend_count = *reinterpret_cast<std::atomic_uint8_t*>(&guest_thread->suspend_count);
++  uint8_t previous_suspend_count = suspend_count.load();
++  while (previous_suspend_count &&
++         !suspend_count.compare_exchange_weak(previous_suspend_count,
++                                              uint8_t(previous_suspend_count - 1))) {
++  }
+   if (out_suspend_count) {
+     *out_suspend_count = previous_suspend_count;
+   }
++  if (!previous_suspend_count) {
++    return X_STATUS_SUCCESS;
++  }
+   return thread_->Resume(&unused_host_suspend_count) ? X_STATUS_SUCCESS : X_STATUS_UNSUCCESSFUL;
+ #elif REX_PLATFORM_LINUX || REX_PLATFORM_MAC
+   bool should_resume_host = false;

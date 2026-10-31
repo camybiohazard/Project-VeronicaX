@@ -18,7 +18,10 @@ generated/default/        codegen output (gitignored, rebuilt on demand)
 scripts/                  extract / codegen / build / run helpers
 notes/                    research: function notes, ISO listing, logs
 game/                     the ISO and extracted files (gitignored)
-sdk -> rexglue-sdk-.../linux-amd64
+patches/                  our ReXGlue source patches (see patches/README.md)
+rexglue-sdk-bd833a2/      ReXGlue source, built by scripts/build-rexglue.sh (gitignored)
+sdk -> rexglue-sdk-bd833a2/out/install/linux-amd64
+sdk-win -> rexglue-sdk-bd833a2/out/install/win-amd64
 ```
 
 Keep custom code in new files under `src/`, not in `main.cpp` or
@@ -27,9 +30,16 @@ Keep custom code in new files under `src/`, not in `main.cpp` or
 ## Setup (Linux)
 
 ```sh
-sudo apt install clang-20 lld-20 libvulkan-dev   # ReXGlue needs Clang 18+; presets expect clang-20
+sudo apt install clang-20 lld-20 libvulkan-dev libx11-xcb-dev libwayland-dev
+scripts/build-rexglue.sh linux                   # ReXGlue from source + our patches -> sdk/
 scripts/extract.sh                               # ISO -> game/extracted (once)
 ```
+
+ReXGlue is built from source at bd833a2, the 0.10.0.24 SDK commit, with
+`patches/` applied, instead of using the prebuilt SDK. The patch fixes a
+runtime bug (see patches/README.md), and Linux and Windows share it.
+`scripts/build-rexglue.sh` clones, patches, builds and points `sdk`/`sdk-win`
+at the installs. Rerun it after changing the patch.
 
 ## Workflow
 
@@ -37,7 +47,7 @@ scripts/extract.sh                               # ISO -> game/extracted (once)
 scripts/codegen.sh        # analyse Default.xex and generate C++ (~80 s)
 scripts/build.sh          # configure and build (dev-relwithdebinfo, -j4)
 scripts/run.sh            # run with game_data_root = game/extracted
-scripts/smoke-test.sh     # 30 s boot check; run after every codegen change
+scripts/smoke-test.sh     # boot check (up to 90 s); run after every codegen change
 ```
 
 When codegen lists unresolved targets, add a `[functions."0x..."]` entry to
@@ -109,13 +119,14 @@ executable there.
 ## Windows build (cross-compiled from Linux)
 
 ```sh
-scripts/build-win.sh      # Release, D3D12, output in build-win/
+scripts/build-win.sh      # Release, D3D12 + Vulkan, output in build-win/
 ```
 
 It needs:
 
-- The Windows ReXGlue SDK of the same version as `sdk/`, unpacked so that
-  `sdk-win` points at its `win-amd64` folder.
+- The Windows ReXGlue SDK, cross-built from the same source:
+  `scripts/build-rexglue.sh win` (sets up `sdk-win`). It includes the Vulkan
+  backend, which the official Windows SDK leaves out.
 - Microsoft's CRT and Windows SDK, laid out by
   [xwin](https://github.com/Jake-Shadle/xwin):
   `xwin --accept-license --arch x86_64 splat --output ~/.local/share/xwin`.

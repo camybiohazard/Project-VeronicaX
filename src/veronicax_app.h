@@ -9,6 +9,7 @@
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
 #include <rex/rex_app.h>
+#include <rex/system/gpu_plugin.h>
 
 #include "launcher/game_files.h"
 #include "launcher/launcher_dialog.h"
@@ -46,7 +47,7 @@ class VeronicaxApp : public rex::ReXApp {
       return defaults;
     }
     veronicax::LauncherDialog::Options options{
-        defaults.game_data_root, defaults.config_path, !have_game};
+        defaults.game_data_root, defaults.config_path, !have_game, gpu_backend_};
     // The dialog deletes itself when closed; resume after its frame ends.
     new veronicax::LauncherDialog(
         imgui_drawer(), std::move(options), [this, defaults, resume]() {
@@ -63,11 +64,31 @@ class VeronicaxApp : public rex::ReXApp {
   }
 
   // Without a GPU plugin every Vd* call is ignored and nothing is drawn.
-  // --gpu_plugin still overrides this.
+  // --gpu_plugin still overrides this. The plugin is loaded here so
+  // veronicax_gpu_backend can pick D3D12 or Vulkan (ReXApp always asks for
+  // "any", which is D3D12 whenever the plugin has it).
   void OnPreSetup(rex::RuntimeConfig& config) override {
-    if (config.gpu_plugin.empty()) {
-      config.gpu_plugin = "xenos";
+    if (!config.gpu_plugin.empty() || config.graphics) {
+      return;
     }
+    std::string backend = REXCVAR_GET(veronicax_gpu_backend);
+    config.graphics = rex::system::LoadGpuPlugin("xenos", backend);
+    if (!config.graphics && backend != "any") {
+      REXLOG_WARN("GPU plugin has no '{}' backend; using its default", backend);
+      backend = "any";
+      config.graphics = rex::system::LoadGpuPlugin("xenos", backend);
+    }
+    if (!config.graphics) {
+      // Let ReXApp retry and show its error dialog.
+      config.gpu_plugin = "xenos";
+      return;
+    }
+#if defined(_WIN32)
+    gpu_backend_ = backend == "any" ? "d3d12" : backend;
+#else
+    gpu_backend_ = "vulkan";
+#endif
+    REXLOG_INFO("Graphics backend: {}", gpu_backend_);
   }
 
   // GPU cvars are registered by the GPU plugin, so they only exist after
@@ -121,4 +142,5 @@ class VeronicaxApp : public rex::ReXApp {
   }
 
   bool game_root_from_flag_ = false;
+  std::string gpu_backend_;
 };

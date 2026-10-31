@@ -29,6 +29,11 @@
 
 REXCVAR_DEFINE_BOOL(veronicax_show_launcher, true, "VeronicaX",
                     "Show the launcher (setup and display settings) before the game starts");
+// Read before the launcher opens (the window's renderer comes from the GPU
+// plugin), so a change applies from the next start.
+REXCVAR_DEFINE_STRING(veronicax_gpu_backend, "any", "VeronicaX",
+                      "Graphics backend: any (D3D12 on Windows), d3d12 or vulkan")
+    .allowed({"any", "d3d12", "vulkan"});
 
 namespace veronicax {
 
@@ -278,6 +283,24 @@ void LauncherDialog::DrawSettings() {
 //    }
 //    ImGui::EndCombo();
 //  }
+
+#if defined(_WIN32)
+  std::string backend = REXCVAR_GET(veronicax_gpu_backend);
+  bool vulkan = backend == "vulkan";
+  ImGui::TextUnformatted("Graphics");
+  ImGui::SameLine();
+  if (ImGui::RadioButton("Direct3D 12", !vulkan)) {
+    SetFlag("veronicax_gpu_backend", "d3d12");
+  }
+  ImGui::SameLine();
+  if (ImGui::RadioButton("Vulkan", vulkan)) {
+    SetFlag("veronicax_gpu_backend", "vulkan");
+  }
+  if (backend != options_.active_gpu_backend &&
+      !(backend == "any" && options_.active_gpu_backend == "d3d12")) {
+    ImGui::TextDisabled("Restart the game to switch graphics.");
+  }
+#endif
 
   bool show_launcher = REXCVAR_GET(veronicax_show_launcher);
   if (ImGui::Checkbox("Show this launcher at startup", &show_launcher)) {

@@ -21,6 +21,7 @@
 #include <rex/ui/imgui_dialog.h>
 
 REXCVAR_DECLARE(bool, veronicax_show_launcher);
+REXCVAR_DECLARE(std::string, veronicax_gpu_backend);
 
 namespace veronicax {
 
@@ -30,6 +31,8 @@ class LauncherDialog final : public rex::ui::ImGuiDialog {
     std::filesystem::path game_dir;
     std::filesystem::path config_path;
     bool needs_game_files = false;
+    // Backend the GPU plugin was created with ("d3d12" or "vulkan").
+    std::string active_gpu_backend;
   };
 
   // `on_play` runs on the UI thread after the dialog closes.

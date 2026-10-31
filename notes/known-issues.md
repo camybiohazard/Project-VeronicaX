@@ -40,10 +40,19 @@ libdecor's GTK plugin aborts, set `SDL_VIDEO_WAYLAND_ALLOW_LIBDECOR=0`
 
 ## Testing
 
-`scripts/smoke-test.sh` boots for 30 s and checks the game reaches the
-storage device selector with no fatal errors. Run it after every codegen
+`scripts/smoke-test.sh` boots the game and checks it reaches the storage
+device selector with no fatal errors. Run it after every codegen
 change. It caught a scanner bug that shrank 114 functions to one
 instruction, which produced a black screen with no error at all.
+
+Since 2026-10-31 the boot to the device selector sometimes takes over 60 s
+instead of about 15 s. The game keeps rendering at 30 fps, so it's waiting
+rather than frozen. The official prebuilt runtime does the same on the same
+binary, so it isn't the source-built SDK, and deleting the saves doesn't
+change it; the cause is unknown. The smoke test therefore stops as soon as
+the selector appears but waits up to 90 s before failing, and prints how long
+the boot took. To compare runtimes, swap the .so links in
+out/build/<preset>/ and use a fresh log per run (log files append).
 
 ## "Disc read error" when opening doors (fixed 2026-10-26)
 
@@ -84,3 +93,41 @@ errors at boot once /dev/shm filled. `VeronicaxApp::UnlinkGuestMemoryFile`
 unlinks it right after setup (the mapping only uses the descriptor). If old
 files remain from before this fix: `rm /dev/shm/xenia_memory_*` with no game
 running.
+
+## Corrupted second FMV and textures after the attract demo (fixed 2026-10-31, Windows)
+
+Sit on the main menu: the attract demo plays, then the intro FMV again,
+green (no chroma) and strobing with vertical stripes. A new game started
+after that had random noise textures (the jailer all yellow, inventory icons)
+until a restart. Windows only, both backends, GTX 1660 and RTX 5060. It also
+reproduced under Proton Experimental on Linux, so it is in the Windows build,
+not in Windows itself.
+
+Cause: the GPU kept stale copies of pages it had written. At boot the GPU
+resolves into physical 0x0EEE4000-0x0EFAxxxx after the guest had freed that
+memory ("GPU wrote ... which is not allocated"). `MakeRangeValid` marks those
+pages GPU-written, but `EnableAccessCallbacks` only write-watches pages
+committed in a view, so nothing watched them. When the FMV's chroma planes
+and later textures were allocated there (in 0xE0000000), CPU writes never
+invalidated the GPU copy. A check at that point found 442 committed,
+GPU-written, unwatched, writable pages in the 0xE0000000 view. Why only the
+Windows build: presumably GPU thread timing, so the late resolve only lands
+after the free there.
+
+Fix (ReXGlue patch, patches/): physical allocations drop any GPU-held copy
+of the new range (`PhysicalHeap::InvalidateGpuData`). The Windows package now
+ships the patched runtime and plugin (scripts/build-win.sh), which also gives
+the Vulkan backend option.
+
+How it was found, for similar bugs:
+- A ClearCaches hotkey did nothing, because ClearCache keeps GPU-written
+  pages. Making it also call `InvalidateAllPages` cleared the corruption at
+  once, which proved guest memory was right and the GPU copy stale.
+- Ruled out along the way: the backend, compiler flags (-O3/strict aliasing
+  build), every SIMD/math primitive the game uses (a differential test, clang
+  vs clang-cl under Wine: only std::fma signalling-NaN quieting differs), the
+  0xE0000000 4 KB host offset, file reads, atomics, FPSCR, the
+  PhysicalHeap::Release race.
+- Also fixed on the way: XThread::Resume on Windows took the suspend count
+  below zero (the game resumes running threads routinely), so a later Suspend
+  could silently not suspend.

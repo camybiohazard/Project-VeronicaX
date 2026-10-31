@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Cross-compile the Windows x64 build into build-win/ (Release, D3D12).
+# Cross-compile the Windows x64 build into build-win/ (Release; D3D12 and Vulkan).
 #
 # Needs: clang-20 tools (clang-cl, lld-link, llvm-rc, llvm-mt, llvm-lib), the
-# Windows ReXGlue SDK at sdk-win/ (same version as sdk/), and Microsoft's CRT +
+# Windows ReXGlue SDK at sdk-win/ (scripts/build-rexglue.sh win), and Microsoft's CRT +
 # Windows SDK from xwin at ~/.local/share/xwin (see
 # cmake/toolchain-win-clang-cl.cmake). Codegen still runs the Linux sdk/bin/rexglue.
 #
