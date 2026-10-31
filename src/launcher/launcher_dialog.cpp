@@ -53,7 +53,7 @@ constexpr std::array<WindowSize, 5> kWindowSizes = {{
     {"1920 x 1080", 1920, 1080},
     {"2560 x 1440", 2560, 1440},
 }};
-// As of now resolution scale breaks inventory menu ui
+// resolution scale
 constexpr std::array<const char*, 2> kScaleLabels = {
     "1x (native 720p)", "2x (experimental, slower)"};
 
