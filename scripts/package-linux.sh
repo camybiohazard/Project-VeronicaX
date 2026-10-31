@@ -17,7 +17,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
-version="${1:-0.3.0-$(git describe --always --dirty)}"
+version="${1:-0.4.0-$(git describe --always --dirty)}"
 jobs="${2:-4}"
 # -fno-math-errno: without it the generated code calls sqrtf, which links the
 # glibc 2.43 symbol version and would shut out every older distribution.

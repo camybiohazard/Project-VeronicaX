@@ -54,8 +54,8 @@ constexpr std::array<WindowSize, 5> kWindowSizes = {{
     {"2560 x 1440", 2560, 1440},
 }};
 // As of now resolution scale breaks inventory menu ui
-//constexpr std::array<const char*, 3> kScaleLabels = {
-//    "1x (native 720p)", "2x (experimental, slower)", "3x (experimental, slowest)"};
+constexpr std::array<const char*, 2> kScaleLabels = {
+    "1x (native 720p)", "2x (experimental, slower)"};
 
 void SetFlag(const char* name, const std::string& value) {
   if (!rex::cvar::SetFlagByName(name, value)) {
@@ -272,28 +272,28 @@ void LauncherDialog::DrawSettings() {
     ImGui::EndCombo();
   }
   ImGui::EndDisabled();
-// More relsolution scale setting 
-//  int32_t scale = std::clamp(rex::cvar::Query<int32_t>("resolution_scale"), 1,
-//                             int32_t(kScaleLabels.size()));
-//  if (ImGui::BeginCombo("Internal resolution", kScaleLabels[size_t(scale - 1)])) {
-//    for (size_t i = 0; i < kScaleLabels.size(); ++i) {
-//      if (ImGui::Selectable(kScaleLabels[i], int32_t(i + 1) == scale)) {
-//        SetFlag("resolution_scale", std::to_string(i + 1));
-//      }
-//    }
-//    ImGui::EndCombo();
-//  }
+  // More resolution scale setting 
+  int32_t scale = std::clamp(rex::cvar::Query<int32_t>("resolution_scale"), 1,
+                             int32_t(kScaleLabels.size()));
+  if (ImGui::BeginCombo("Internal resolution", kScaleLabels[size_t(scale - 1)])) {
+    for (size_t i = 0; i < kScaleLabels.size(); ++i) {
+      if (ImGui::Selectable(kScaleLabels[i], int32_t(i + 1) == scale)) {
+        SetFlag("resolution_scale", std::to_string(i + 1));
+      }
+    }
+    ImGui::EndCombo();
+  }
 
 #if defined(_WIN32)
   std::string backend = REXCVAR_GET(veronicax_gpu_backend);
   bool vulkan = backend == "vulkan";
   ImGui::TextUnformatted("Graphics");
   ImGui::SameLine();
-  if (ImGui::RadioButton("Direct3D 12", !vulkan)) {
+  if (ImGui::RadioButton("Direct3D 12 (Recommended)", !vulkan)) {
     SetFlag("veronicax_gpu_backend", "d3d12");
   }
-  ImGui::SameLine();
-  if (ImGui::RadioButton("Vulkan", vulkan)) {
+  ImGui::SameLine(); // Experimental Vulkan option
+  if (ImGui::RadioButton("Vulkan (Experimental)", vulkan)) {
     SetFlag("veronicax_gpu_backend", "vulkan");
   }
   if (backend != options_.active_gpu_backend &&
