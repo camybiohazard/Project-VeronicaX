@@ -29,7 +29,7 @@ stage="dist/$name"
 [ -d third_party_licenses ] || { echo "third_party_licenses/ missing: run scripts/fetch-licenses.sh" >&2; exit 1; }
 
 echo "== Building $preset"
-scripts/build.sh "$preset" "$jobs" > /dev/null
+scripts/with-progress.sh notes/logs/package-linux-build.log scripts/build.sh "$preset" "$jobs"
 
 echo "== Staging $stage"
 rm -rf "$stage" "dist/$name.tar.gz" "dist/$name.tar.gz.sha256"

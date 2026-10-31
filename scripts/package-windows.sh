@@ -29,7 +29,7 @@ readobj=llvm-readobj-20
 [ -f LICENSE ] || { echo "LICENSE missing" >&2; exit 1; }
 
 echo "== Building win-cross-release"
-scripts/build-win.sh "$jobs" > /dev/null
+scripts/with-progress.sh notes/logs/package-windows-build.log scripts/build-win.sh "$jobs"
 
 echo "== Staging $stage"
 rm -rf "$stage" "dist/$name.zip" "dist/$name.zip.sha256"
